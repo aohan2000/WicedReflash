@@ -1,0 +1,2 @@
+WicedReflash dumpr COM10 115200 CTS VERBOSE6 BCM20706_SFLASH 0 0x80000 > dumpall_OK.txt
+pause

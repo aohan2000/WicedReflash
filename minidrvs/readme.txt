@@ -1,0 +1,6 @@
+BCM920719EVAL_Q40\minidriver-20739A0-uart.hex:
+	WICED-Studio-4.1\20719-B0_Bluetooth\platforms\BCM920719EVAL_Q40\minidriver-20739A0-uart.hex
+BCM920706_P49\uart.hex:
+	WICED-Studio-4.1\20706-A2_Bluetooth\Platforms\BCM920706_P49\uart.hex
+BCM920737TAG_Q32\uart_DISABLE_EEPROM_WP_PIN1.hex:
+	WICED-Smart-SDK-2.2.3\WICED-Smart-SDK\Platforms\BCM920737TAG_Q32\uart_DISABLE_EEPROM_WP_PIN1.hex 
