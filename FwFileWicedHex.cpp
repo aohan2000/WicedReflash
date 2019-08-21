@@ -80,18 +80,18 @@ CY_RESULT FwFileWicedHex::Load(LPCTSTR fwFileName)
             pRows = (PWICED_HEX_ROW)realloc(pRows, (allocatedRows + 10) * sizeof(WICED_HEX_ROW));
             if (!pRows)
             {
-				TDebugPrint(_T("<0>Expand rows from %d to %d FAILED.\n"), allocatedRows, allocatedRows + 16);
+                TDebugPrint(_T("<0>Expand rows from %d to %d FAILED.\n"), allocatedRows, allocatedRows + 16);
                 ret = CY_ERROR_MEMORY_LACK;
                 goto error;
             }
-			TDebugPrint(_T("Expand rows from %d to %d.\n"), allocatedRows, allocatedRows + 16);
+            TDebugPrint(_T("Expand rows from %d to %d.\n"), allocatedRows, allocatedRows + 16);
             allocatedRows += 10;
         }
 
         //Chech start record ":"
         if (strlen(pRowBuf) < 1 || pRowBuf[0] != WHEX_ROW_START_CHAR)
         {
-			TDebugPrint(_T("<1>Ignore WICED HEX file row [%d]. Invalid start char 0x%02X or Invalid string count %d.\n"), rowCount, pRowBuf[0], strlen(pRowBuf));
+            TDebugPrint(_T("<1>Ignore WICED HEX file row [%d]. Invalid start char 0x%02X or Invalid string count %d.\n"), rowCount, pRowBuf[0], strlen(pRowBuf));
 
             pRowBuf = fgets(buffer, sizeof(buffer), f);
 
@@ -103,7 +103,7 @@ CY_RESULT FwFileWicedHex::Load(LPCTSTR fwFileName)
 
         if (count < WHEX_HEADER_SIZE)
         {
-			TDebugPrint(_T("<0>Failed to decode WICED HEX file row [%d]. Header size error %d.\n"), rowCount, count);
+            TDebugPrint(_T("<0>Failed to decode WICED HEX file row [%d]. Header size error %d.\n"), rowCount, count);
             ret = CY_ERROR_FORMAT;
             goto error;
         }
@@ -113,7 +113,7 @@ CY_RESULT FwFileWicedHex::Load(LPCTSTR fwFileName)
         //Check row size
         if (count != HEX_ROW_SIZE(pHexRow) || pHexRow->DataSize > WHEX_MAX_PAYLOAD_SIZE)
         {
-			TDebugPrint(_T("<0>Failed to decode WICED HEX file row [%d]. Data size error read %d (%d).\n"), rowCount, count, (WHEX_HEADER_SIZE + pHexRow->DataSize + 1));
+            TDebugPrint(_T("<0>Failed to decode WICED HEX file row [%d]. Data size error read %d (%d).\n"), rowCount, count, (WHEX_HEADER_SIZE + pHexRow->DataSize + 1));
             ret = CY_ERROR_FORMAT;
             goto error;
         }
@@ -121,7 +121,7 @@ CY_RESULT FwFileWicedHex::Load(LPCTSTR fwFileName)
         //Check sum
         CY_U8 sum = Global::SUM((CY_U8*)pRowBuf + 1, HEX_ROW_SIZE(pHexRow) - 1);
         if (sum) {
-			TDebugPrint(_T("<0>Check sum error on row %d.\n"), rowCount);
+            TDebugPrint(_T("<0>Check sum error on row %d.\n"), rowCount);
             ret = CY_ERROR_FORMAT;
             goto error;
         }
@@ -163,7 +163,7 @@ CY_RESULT FwFileWicedHex::GenEmptyHex(UINT32 startAddr, UINT32 len)
     this->maxWriteSize = 64;
     this->totalPayloadSize += len;
     nonDataRowCount = 2;
-    rowCount = len / 64 + ((len % 64)?3:2);//Header offset row + end row
+    rowCount = len / 64 + ((len % 64) ? 3 : 2);//Header offset row + end row
 
     if (rowCount >= allocatedRows)
     {
@@ -188,7 +188,7 @@ CY_RESULT FwFileWicedHex::GenEmptyHex(UINT32 startAddr, UINT32 len)
 
     UINT16 offset = startAddr & 0xFFFF;
     UINT16 remain = len;
-    
+
     for (int i = 0; remain > 0; i++)
     {
         pHexRow->StartChar = ':';
@@ -197,7 +197,7 @@ CY_RESULT FwFileWicedHex::GenEmptyHex(UINT32 startAddr, UINT32 len)
         pHexRow->RowType = WHEX_ROW_TYPE_DATA;
         offset += pHexRow->DataSize;
         remain -= pHexRow->DataSize;
-        pHexRow ++;
+        pHexRow++;
     }
     pHexRow->StartChar = ':';
     pHexRow->DataSize = 0;
@@ -252,15 +252,15 @@ CY_RESULT FwFileWicedHex::UpdateBDAddress(CY_U64 BDAddr)
     }
 
     newBDAddr = BDAddr;
-    
+
     if (ReCalc(TRUE))
     {
         newBDAddr = 0;
         TDebugPrint(_T("<6>BDAddress was updated.\n"));
         return CY_ERROR_SUCCESS;
     }
-        
-	TDebugPrint(_T("<1>Failed to update BDAddress.\n"));
+
+    TDebugPrint(_T("<1>Failed to update BDAddress.\n"));
 
     newBDAddr = 0;
 
@@ -315,7 +315,7 @@ bool FwFileWicedHex::ReCalc(int genCheckSum)
         }
         else if (Global::SUM(((CY_U8*)pHexRow) + 1, HEX_ROW_SIZE(pHexRow) - 1))
         {
-			TDebugPrint(_T("<0>Row[%d] checksum error.\n"), rowCount);
+            TDebugPrint(_T("<0>Row[%d] checksum error.\n"), rowCount);
             return false;
         }
 
@@ -331,11 +331,11 @@ bool FwFileWicedHex::ReCalc(int genCheckSum)
         }
     }
 
-	TDebugPrint(_T("<6>RowCnt = %d, nonDataRowCnt = %d, Payload = %d, MaxWriteSize = %d.\n"), rowCount, nonDataRowCount, totalPayloadSize, maxWriteSize);
+    TDebugPrint(_T("<6>RowCnt = %d, nonDataRowCnt = %d, Payload = %d, MaxWriteSize = %d.\n"), rowCount, nonDataRowCount, totalPayloadSize, maxWriteSize);
 
     if (_totalPayloadSize != totalPayloadSize)
     {
-		TDebugPrint(_T("<0>Error! Total payload insistent %d -> %d.\n"), _totalPayloadSize, totalPayloadSize);
+        TDebugPrint(_T("<0>Error! Total payload insistent %d -> %d.\n"), _totalPayloadSize, totalPayloadSize);
     }
     return true;
 }
