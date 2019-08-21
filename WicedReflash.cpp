@@ -537,7 +537,7 @@ BOOL SendWriteRam(ComHelper *p_port, UINT32 address, PBYTE data, BYTE size, bool
 
     if (readAndCompare)
     {
-            return SendReadAndVerifyRam(p_port, address, data, size, true);
+        return SendReadAndVerifyRam(p_port, address, data, size, true);
     }
     //size max value = 0xFF - 4 = 0xFB
     //command_size = 0xFB + 8 = 259
@@ -1406,7 +1406,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
                 CY_U64 BDAddr = 0;
                 minidrvPathname = pReflashParams->MiniDrvPath;
-                
+
                 if (argc >= 5)
                     configPathname = (argv[4]);
 
