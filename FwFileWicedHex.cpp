@@ -293,7 +293,6 @@ bool FwFileWicedHex::ReCalc(int genCheckSum)
                 CY_U8* p = NULL;
                 if (pHexRow->RowType == 0 && pHexRow->OffsetAddr == 0)
                 {
-                    //Hard coded, todo update bda by REFALSH_PARAMETERS->BDAddrOffsetInSS
                     if (pHexRow->DataSize == 0x42 && !memcmp("BRCMcfgS", pHexRow->Data, 8))
                     {
                         //BCM20739 hex
