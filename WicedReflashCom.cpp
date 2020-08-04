@@ -33,7 +33,7 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
     sprintf_s(lpStr, 20, "\\\\.\\COM%d", port);
 
     // open once only
-    if (m_handle != NULL && m_handle != INVALID_HANDLE_VALUE)
+    if (m_handle != NULL&& m_handle != INVALID_HANDLE_VALUE)
     {
         CloseHandle(m_handle);
     }
@@ -45,7 +45,7 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
         FILE_FLAG_OVERLAPPED,
         NULL);
 
-    if (m_handle != NULL && m_handle != INVALID_HANDLE_VALUE)
+    if (m_handle != NULL&& m_handle != INVALID_HANDLE_VALUE)
     {
         // setup serial bus device
         BOOL bResult;
@@ -103,8 +103,8 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
         serial_config.fParity = FALSE;
         /*
         * Since CyUSBSerial driver v3.13.0.73(I tested .73 and .80), clearing "XonChar" or "XoffChar" can cause SetCommState fail.
-        * I found comunication can't be established with the following two lines on CY7C65215(dual USB-Serial chip),
-        * so comment out the following two lines to fix this issue. BlueTool(v1.9.6.2 and v2.0.0.1) also has this issue if driver
+        * I found comunication can't be established with the following two lines on CY7C65215(dual USB-Serial chip), 
+        * so comment out the following two lines to fix this issue. BlueTool(v1.9.6.2 and v2.0.0.1) also has this issue if driver 
         * was updated to 3.13.0.80.
         */
         //serial_config.XonChar = 0;
@@ -115,7 +115,7 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
         bResult = SetCommState(m_handle, &serial_config);
 
         if (!bResult)
-            TDebugPrint(_T("<0>OpenPort SetCommState failed %d.\n"), GetLastError());
+			TDebugPrint(_T("<0>OpenPort SetCommState failed %d.\n"), GetLastError());
         else
         {
             // verify CommState
