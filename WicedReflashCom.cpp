@@ -33,7 +33,7 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
     sprintf_s(lpStr, 20, "\\\\.\\COM%d", port);
 
     // open once only
-    if (m_handle != NULL&& m_handle != INVALID_HANDLE_VALUE)
+    if (m_handle != NULL && m_handle != INVALID_HANDLE_VALUE)
     {
         CloseHandle(m_handle);
     }
@@ -45,7 +45,7 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
         FILE_FLAG_OVERLAPPED,
         NULL);
 
-    if (m_handle != NULL&& m_handle != INVALID_HANDLE_VALUE)
+    if (m_handle != NULL && m_handle != INVALID_HANDLE_VALUE)
     {
         // setup serial bus device
         BOOL bResult;
@@ -55,7 +55,7 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
         COMSTAT comStat;
         DCB serial_config;
 
-        PurgeComm(m_handle, PURGE_RXABORT | PURGE_RXCLEAR |PURGE_TXABORT | PURGE_TXCLEAR);
+        PurgeComm(m_handle, PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR);
 
         // create events for Overlapped IO
         m_OverlapRead.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -73,7 +73,7 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
 
         // set comm configuration
         memset(&serial_config, 0, sizeof(serial_config));
-        serial_config.DCBlength = sizeof (DCB);
+        serial_config.DCBlength = sizeof(DCB);
         bResult = GetCommState(m_handle, &serial_config);
 
         serial_config.BaudRate = baudRate;
@@ -103,8 +103,8 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
         serial_config.fParity = FALSE;
         /*
         * Since CyUSBSerial driver v3.13.0.73(I tested .73 and .80), clearing "XonChar" or "XoffChar" can cause SetCommState fail.
-        * I found comunication can't be established with the following two lines on CY7C65215(dual USB-Serial chip), 
-        * so comment out the following two lines to fix this issue. BlueTool(v1.9.6.2 and v2.0.0.1) also has this issue if driver 
+        * I found comunication can't be established with the following two lines on CY7C65215(dual USB-Serial chip),
+        * so comment out the following two lines to fix this issue. BlueTool(v1.9.6.2 and v2.0.0.1) also has this issue if driver
         * was updated to 3.13.0.80.
         */
         //serial_config.XonChar = 0;
@@ -115,12 +115,12 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
         bResult = SetCommState(m_handle, &serial_config);
 
         if (!bResult)
-			TDebugPrint(_T("<0>OpenPort SetCommState failed %d.\n"), GetLastError());
+            TDebugPrint(_T("<0>OpenPort SetCommState failed %d.\n"), GetLastError());
         else
         {
             // verify CommState
             memset(&serial_config, 0, sizeof(serial_config));
-            serial_config.DCBlength = sizeof (DCB);
+            serial_config.DCBlength = sizeof(DCB);
             bResult = GetCommState(m_handle, &serial_config);
         }
 
@@ -129,7 +129,7 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
         bResult = GetCommProperties(m_handle, &commProp);
 
         if (!bResult)
-			TDebugPrint(_T("<0>OpenPort GetCommProperties failed %d.\n"), GetLastError());
+            TDebugPrint(_T("<0>OpenPort GetCommProperties failed %d.\n"), GetLastError());
         else
         {
             // use 4096 byte as preferred buffer size, adjust to fit within allowed Max
@@ -142,16 +142,16 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
             bResult = SetupComm(m_handle, commProp.dwCurrentRxQueue, commProp.dwCurrentTxQueue);
 
             if (!bResult)
-				TDebugPrint(_T("<0>OpenPort SetupComm failed %d.\n"), GetLastError());
+                TDebugPrint(_T("<0>OpenPort SetupComm failed %d.\n"), GetLastError());
             else
             {
                 memset(&commProp, 0, sizeof(commProp));
                 bResult = GetCommProperties(m_handle, &commProp);
 
-				if (!bResult)
-				{
-					TDebugPrint(_T("<0>OpenPort GetCommProperties failed %d.\n"), GetLastError());
-				}
+                if (!bResult)
+                {
+                    TDebugPrint(_T("<0>OpenPort GetCommProperties failed %d.\n"), GetLastError());
+                }
             }
         }
 
@@ -159,13 +159,13 @@ BOOL ComHelper::OpenPort(int port, int baudRate, int flowCtrlEnable)
         memset(&comStat, 0, sizeof(comStat));
         ClearCommError(m_handle, &dwError, &comStat);
     }
-	TDebugPrint(_T("<6>Opened COM%d at speed: %u.\n"), port, baudRate);
+    TDebugPrint(_T("<6>Opened COM%d at speed: %u.\n"), port, baudRate);
     return m_handle != NULL && m_handle != INVALID_HANDLE_VALUE;
 }
 
 void ComHelper::ClosePort()
 {
-	TDebugPrint(_T("Close Serial Bus.\n"));
+    TDebugPrint(_T("Close Serial Bus.\n"));
     if (m_OverlapRead.hEvent != NULL)
     {
         CloseHandle(m_OverlapRead.hEvent);
@@ -177,12 +177,12 @@ void ComHelper::ClosePort()
         CloseHandle(m_OverlapWrite.hEvent);
         m_OverlapWrite.hEvent = NULL;
     }
-    if (m_handle != NULL&& m_handle != INVALID_HANDLE_VALUE)
+    if (m_handle != NULL && m_handle != INVALID_HANDLE_VALUE)
     {
         // drop DTR
         EscapeCommFunction(m_handle, CLRDTR);
         // purge any outstanding reads/writes and close device handle
-        PurgeComm(m_handle, PURGE_RXABORT | PURGE_RXCLEAR |PURGE_TXABORT | PURGE_TXCLEAR);
+        PurgeComm(m_handle, PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR);
         CloseHandle(m_handle);
         m_handle = INVALID_HANDLE_VALUE;
     }
@@ -206,10 +206,10 @@ DWORD ComHelper::Read(LPBYTE lpBytes, DWORD dwLen)
     DWORD Length = dwLen;
     DWORD dwRead = 0;
     DWORD dwTotalRead = 0;
-	int waitCnt = READ_WAIT_LOOP_CNT;
-//    printf("ComHelper::Read Prepare to read %ld bytes\n", dwLen);
+    int waitCnt = READ_WAIT_LOOP_CNT;
+    //    printf("ComHelper::Read Prepare to read %ld bytes\n", dwLen);
 
-    // Loop here until request is fulfilled
+        // Loop here until request is fulfilled
     while (Length && waitCnt)
     {
         DWORD dwRet = WAIT_TIMEOUT;
@@ -219,24 +219,24 @@ DWORD ComHelper::Read(LPBYTE lpBytes, DWORD dwLen)
         m_OverlapRead.InternalHigh = 0;
         if (!ReadFile(m_handle, (LPVOID)p, Length, &dwRead, &m_OverlapRead))
         {
-			//printf("ComHelper::ReadFile returned with %ld\n", GetLastError());
+            //printf("ComHelper::ReadFile returned with %ld\n", GetLastError());
 
             // Overlapped IO returns FALSE with ERROR_IO_PENDING
             if (GetLastError() != ERROR_IO_PENDING)
             {
-				TDebugPrint(_T("<0>ComHelper::ReadFile failed with %ld.\n"), GetLastError());
+                TDebugPrint(_T("<0>ComHelper::ReadFile failed with %ld.\n"), GetLastError());
                 break;
             }
 
-			//Display read operation to show progress.
-			if(dbg <= 6)
-				TDebugPrint(_T("<6>."));
-			waitCnt--;
+            //Display read operation to show progress.
+            if (dbg <= 6)
+                TDebugPrint(_T("<6>."));
+            waitCnt--;
 
             //Clear the LastError and wait for the IO to Complete
             SetLastError(ERROR_SUCCESS);
             dwRet = WaitForSingleObject(m_OverlapRead.hEvent, 10000);
-			//printf("ComHelper::WaitForSingleObject returned with %ld\n", dwRet);
+            //printf("ComHelper::WaitForSingleObject returned with %ld\n", dwRet);
 
             // IO completed, retrieve Overlapped result
             GetOverlappedResult(m_handle, &m_OverlapRead, &dwRead, TRUE);
@@ -252,11 +252,11 @@ DWORD ComHelper::Read(LPBYTE lpBytes, DWORD dwLen)
         Length -= dwRead;
         dwTotalRead += dwRead;
 
-		if (_kbhit())  //press any key to stop the Read
+        if (_kbhit())  //press any key to stop the Read
             return 0;
     }
 
-//	printf("dwLen = %d TotalRead = %d\n", dwLen, dwTotalRead);
+    //	printf("dwLen = %d TotalRead = %d\n", dwLen, dwTotalRead);
     return dwTotalRead;
 }
 
@@ -273,7 +273,7 @@ DWORD ComHelper::Write(LPBYTE lpBytes, DWORD dwLen)
     DWORD dwWritten = 0;
     DWORD dwTotalWritten = 0;
 
-//	printf("ComHelper::Write Prepare to Write %ld bytes\n", dwLen);
+    //	printf("ComHelper::Write Prepare to Write %ld bytes\n", dwLen);
     while (Length)
     {
         dwWritten = 0;
@@ -283,13 +283,13 @@ DWORD ComHelper::Write(LPBYTE lpBytes, DWORD dwLen)
         {
             if (GetLastError() != ERROR_IO_PENDING)
             {
-				TDebugPrint(_T("<0>ComHelper::WriteFile failed with %ld.\n"), GetLastError());
+                TDebugPrint(_T("<0>ComHelper::WriteFile failed with %ld.\n"), GetLastError());
                 break;
             }
             DWORD dwRet = WaitForSingleObject(m_OverlapWrite.hEvent, 5000);
             if (dwRet != WAIT_OBJECT_0)
             {
-				TDebugPrint(_T("<0>ComHelper::Write WaitForSingleObject failed with %ld.\n"), GetLastError());
+                TDebugPrint(_T("<0>ComHelper::Write WaitForSingleObject failed with %ld.\n"), GetLastError());
                 break;
             }
             GetOverlappedResult(m_handle, &m_OverlapWrite, &dwWritten, FALSE);
@@ -301,7 +301,7 @@ DWORD ComHelper::Write(LPBYTE lpBytes, DWORD dwLen)
         dwTotalWritten += dwWritten;
     }
 
-//    printf("dwLen = %d TotalWritten = %d\n", dwLen, dwWritten);
+    //    printf("dwLen = %d TotalWritten = %d\n", dwLen, dwWritten);
     return dwTotalWritten;
 }
 

@@ -61,7 +61,7 @@ private:
 public:
     bool ReCalc(int genCheckSum);
     //Start RAM address was written to. If it is minidriver hex file, this address will be launched before download config hex file.
-    UINT32 launchAddress; 
+    UINT32 launchAddress;
     FwFileWicedHex();
     virtual CY_RESULT Load(LPCTSTR fileName);
     virtual UINT8 GetDLMaxWriteSize() { return maxWriteSize; };

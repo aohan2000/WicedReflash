@@ -12,10 +12,7 @@
 #define WICED_HCI 1
 
 int dbg = 7;
-int DumpFlag = 0;
-UINT32 DumpOffset = 0;
-UINT32 DumpLength = 0;
-int InRecoverMode = 0;
+int NoDLMinidrv = 0;
 int Simulate = 0;
 
 typedef struct _BLOCK_CRC
@@ -64,14 +61,16 @@ typedef struct _REFALSH_PARAMETERS
     UINT32 AppAddr;     //Address for launch application
     VERIFY_METHOD VerifyMethod;
     bool BringAppFromHCIMode;//Only for bring BCM20719 from HCI mode to App mode after programming.
-    UINT32 DS2Offset;
     UINT32 FlashMappedAddr;
+    UINT32 MFIDDownloadAddr; //Not Implement
+    UINT32 BDAddrOffsetInSS; //Not Implement
+    bool IgnoreDLMinidrvCmd;
 }REFALSH_PARAMETERS, *PREFALSH_PARAMETERS;
 
 REFALSH_PARAMETERS ReflashParams[] = {
     {
         execute_download_hex,
-        "CYW20719_SFlash",
+        "CYW20719B0",
         "minidrvs\\BCM920719EVAL_Q40\\minidriver-20739A0-uart.hex",
         115200,
         1,
@@ -81,13 +80,105 @@ REFALSH_PARAMETERS ReflashParams[] = {
         0xFFFFFFFF,
         VERIFY_CRC,  //719 supports Calc CRC command
         1,
-        0x7E000,
-        0x00500000
+        0x00500000,
+        0x00500c00,
+        0x1A,
+        true
     },
 
     {
         execute_download_hex,
-        "CYW20706_SFlash",
+        "CYW20719B1",
+        "minidrvs\\CYW20719B1\\minidriver-20739B1-module-uart.hex",
+        115200,
+        1,
+        240,
+        0xFCBEEEEF,
+        0,
+        0xFFFFFFFF,
+        VERIFY_CRC,
+        1,
+        0x00500000,
+        0x00500c00,
+        0x1A,
+        true
+    },
+
+    {
+        execute_download_hex,
+        "CYW20719B2",
+        "minidrvs\\CYW20719B2\\minidriver.hex",
+        115200,
+        1,
+        240,
+        0xFCBEEEEF,
+        0,
+        0xFFFFFFFF,
+        VERIFY_CRC,
+        1,
+        0x00500000,
+        0x00500c00,
+        0x1A,
+        true
+    },
+
+    {
+        execute_download_hex,
+        "CYW20721B2",
+        "minidrvs\\CYW20719B2\\minidriver.hex",
+        115200,
+        1,
+        240,
+        0xFCBEEEEF,
+        0,
+        0xFFFFFFFF,
+        VERIFY_CRC,
+        1,
+        0x00500000,
+        0x00500c00,
+        0x1A,
+        true
+    },
+
+    {
+        execute_download_hex,
+        "CYW208XXA1",
+        "minidrvs\\CYW20819A1\\minidriver-20819A1-uart-patchram.hex",
+        115200,
+        1,
+        240,
+        0xFCBEEEEF,
+        0,
+        0xFFFFFFFF,
+        VERIFY_CRC,
+        1,
+        0x00500000,
+        0,
+        0x1A,
+        true
+    },
+
+    {
+        execute_download_hex,
+        "CYW20735B1",
+        "minidrvs\\CYW20735B1\\minidriver-20735B1-uart.hex",
+        115200,
+        1,
+        249,
+        0xFF000000,
+        0,
+        0xFFFFFFFF,
+        VERIFY_CRC,
+        1,
+        0xFF000000,
+        0,
+        0x1A,
+        true
+    },
+
+    {
+        execute_download_hex,
+        "CYW20706",
         "minidrvs\\BCM920706_P49\\uart.hex",
         115200,
         1,
@@ -97,8 +188,11 @@ REFALSH_PARAMETERS ReflashParams[] = {
         0,
         VERIFY_DATA,
         0,
-        0x3E000, //248k
-        0xFF000000
+        0xFF000000,
+        0x00500c00,
+        0x15,
+        true
+
     },
 
     {
@@ -113,8 +207,10 @@ REFALSH_PARAMETERS ReflashParams[] = {
         0,
         VERIFY_CRC,
         0,
-        0xE000, //56k
-        0xFF000000
+        0xFF000000,
+        0,
+        0x1A,
+        false
     },
 
     {
@@ -129,8 +225,10 @@ REFALSH_PARAMETERS ReflashParams[] = {
         0,
         VERIFY_NONE,
         0,
-        0,
         0x00200000,
+        0,
+        0x1A,
+        true
     },
 };
 
@@ -285,16 +383,12 @@ static void print_usage_download(bool full)
     printf("Usage:\n\tWicedReflash command COMx [baudrate] [CTS] [VERBOSE[x]] ModuleName fw_pathname [BDAddress] [minidrv_pathname]\n");
     printf("\tcommand:\n");
     printf("\t\tdownload   -- Program hex file in download mode (Send downloadMiniDriver command).\n");
-    printf("\t\trecover    -- Program hex file in recover mode (Send downloadMiniDriver command).\n");
+    printf("\t\trecover    -- Program hex file in recover mode (Don't send downloadMiniDriver command).\n");
     printf("\t\terase      -- Only execute erasing chip.\n");
-    printf("\t\tdump1      -- Dump DS1 config data by address and length in firmware hex file in download mode.\n");
-    printf("\t\tdump2      -- Dump DS2 config data by address and length in firmware hex file in download mode.\n");
-    printf("\t\tdump1r     -- Dump DS1 config data by address and length in firmware hex file in recover mode.\n");
-    printf("\t\tdump2r     -- Dump DS2 config data by address and length in firmware hex file in recover mode.\n");
 
     printf("\tOptions:\n");
     printf("\t\tCTS        -- Enable CTS flow control.\n");
-    printf("\t\tVERBOSEx   -- Specify debug output level.\n");
+    printf("\t\tVERBOSE[1~7]   -- Specify debug output level.\n");
     printf("\t\tModuleName -- ");
 
     for (int i = 0; i < sizeof(ReflashParams) / sizeof(REFALSH_PARAMETERS); i++)
@@ -314,31 +408,6 @@ static void print_usage_gen_hex(bool full)
 {
     printf("Usage:\n\tWicedReflash gen_hex offset length\n");
     printf(" Generate and print an hex file used to clear the flash (offset:length)\n");
-}
-
-static void print_usage_dump(bool full)
-{
-    printf("Usage:\n\tWicedReflash command COMx [baudrate] [CTS] [VERBOSE[x]] ModuleName [Offset] [Length] [minidrv_pathname]\n");
-    printf("\tcommand:\n");
-    printf("\t\tdump       -- Dump flash data in download mode.\n");
-    printf("\t\tdumpr      -- Dump flash data in recover mode.\n");
-
-    printf("\tOptions:\n");
-    printf("\t\tCTS        -- Enable CTS flow control.\n");
-    printf("\t\tVERBOSEx   -- Specify debug output level.\n");
-    printf("\t\tModuleName -- ");
-
-    for (int i = 0; i < sizeof(ReflashParams) / sizeof(REFALSH_PARAMETERS); i++)
-    {
-        if (i == 0)
-            printf("%s", ReflashParams[i].ModuleName);
-        else
-            printf(" | %s", ReflashParams[i].ModuleName);
-    }
-    printf("\n");
-    printf("\t\tOffset     -- Flash offset address in hex. Default is 0. If >= 0x200000 this address will be used as flash memory mapped address.\n");
-    printf("\t\tLength     -- Dump size in hex. Default is 0. If == 0 it will brief SS1/SS2/VS1/VS2/DS1/DS2 data.\n");
-    printf("\t\tminidrv_pathname-- Specify the minidriver HEX file. Default minidrivers are in minidrvs folder.\n");
 }
 
 BOOL SendDownloadMinidriver(ComHelper *p_port)
@@ -468,34 +537,7 @@ BOOL SendWriteRam(ComHelper *p_port, UINT32 address, PBYTE data, BYTE size, bool
 
     if (readAndCompare)
     {
-        if (DumpFlag)
-        {
-            UINT32 offset = 0;
-
-            //dump SS2 and DS2
-            if (DumpFlag == 2)
-            {
-                UINT32 flashOff = address & 0xFFFFF;
-                if (flashOff < 0x1000)
-                {
-                    offset = 0x1000;
-                }
-                else if (flashOff < (pReflashParams->DS2Offset + 16 * 1024))
-                {
-                    offset = pReflashParams->DS2Offset;
-                }
-            }
-            //printf("====>>0x%08X: ", address + offset);
-            //HexDump2(data, size);
-            BOOL ret = SendReadAndVerifyRam(p_port, address + offset, data, size, false);
-            //printf("====<<0x%08X: ", address + offset);
-            //HexDump2(data, size);
-            return ret;
-        }
-        else
-        {
-            return SendReadAndVerifyRam(p_port, address, data, size, true);
-        }
+        return SendReadAndVerifyRam(p_port, address, data, size, true);
     }
     //size max value = 0xFF - 4 = 0xFB
     //command_size = 0xFB + 8 = 259
@@ -679,21 +721,6 @@ BOOL WriteFwBinary(ComHelper *p_port, UINT8 maxWriteSize, int stage, UINT32 addr
         bufferedSize -= bufferedSize;
     }
 
-    if (DumpFlag && size && verifyMethod == VERIFY_DATA)
-    {
-        if (size != writtenCount || bufferedSize != 0)
-        {
-            TDebugPrint(_T("<0>====ERROR===0x%08X: size = %d written = %d bufferedSize = %d.\n"), address, size, writtenCount, bufferedSize);
-        }
-        memcpy(data, bufferedData, size);
-#if 0
-        printf("====>>0x%08X: ", address);
-        HexDump2(data, size);
-        printf("====<<0x%08X: ", address);
-        HexDump2(bufferedData, writtenCount);
-#endif
-    }
-
     //Move remaining data to the buffer header.
     if (writtenCount && bufferedSize)
     {
@@ -754,7 +781,7 @@ static int execute_download_hex_file(ComHelper* pSerialPort, UINT8 maxWriteSize,
         case WHEX_ROW_TYPE_DATA:
             addr = BE16_TO_CPU(pRow->OffsetAddr) + segmentAddr;
             TDebugPrint(_T("WriteFwBinary %d bytes to addr 0x%08X....\n"), pRow->DataSize, addr);
-            if (!WriteFwBinary(pSerialPort, maxWriteSize, DumpFlag ? 2 : 1, addr, pRow->Data, pRow->DataSize, verifyMethod))
+            if (!WriteFwBinary(pSerialPort, maxWriteSize, 1, addr, pRow->Data, pRow->DataSize, verifyMethod))
             {
                 TDebugPrint(_T("<0>WRITE_RAM Failed at Row[%d].\n"), i);
                 return 0;
@@ -782,21 +809,6 @@ static int execute_download_hex_file(ComHelper* pSerialPort, UINT8 maxWriteSize,
     }
 
     TDebugPrint(_T("<6>Write hex file data Successfully.\n"));
-
-    if (DumpFlag && verifyMethod == VERIFY_DATA)
-    {
-        TDebugPrint(_T("<6>Dumping hex from flash.\n"));
-        if (!pHexFile->ReCalc(0))
-        {
-            TDebugPrint(_T("<0>CheckSum Fail.\n"));
-            pHexFile->ReCalc(1);
-        }
-        else
-        {
-            TDebugPrint(_T("<6>CheckSum Succ.\n"));
-        }
-        pHexFile->DumpPrint();
-    }
 
     return true;
 }
@@ -886,220 +898,6 @@ static BOOL ReadNextHCDRecord(FILE * fHCD, ULONG * nAddr, ULONG * nHCDRecSize, U
     return TRUE;
 }
 
-static int dump_data(ComHelper& SerialPort, int dumpFromFlash = 1)
-{
-    BYTE* pBuf;
-    UINT32 MemAddr = DumpOffset;
-    UINT32 Addr;
-    int size = (int)DumpLength;
-    int brief = 0;
-
-    if (!size)
-    {
-        size = 0x200;
-        brief = 1;
-    }
-
-    BYTE* buf = new BYTE[size];
-    int maxReadSize;
-    if (pReflashParams->MaxWriteSize > 256)
-    {
-        maxReadSize = 256;
-    }
-    else if (pReflashParams->MaxWriteSize > 128)
-    {
-        maxReadSize = 128;
-    }
-    else if (pReflashParams->MaxWriteSize > 64)
-    {
-        maxReadSize = 64;
-    }
-    else if (pReflashParams->MaxWriteSize > 0)
-    {
-        maxReadSize = pReflashParams->MaxWriteSize;
-    }
-    else
-    {
-        maxReadSize = 64;
-    }
-
-    pBuf = buf;
-    memset(pBuf, 0, size);
-    if (MemAddr < 0x200000)
-    {
-        MemAddr |= pReflashParams->FlashMappedAddr;
-    }
-
-    if (!brief)
-    {
-        Addr = MemAddr;
-        TDebugPrint(_T("<6>Dump data from from 0x%08X len 0x%04X:\n"), Addr, size);
-        for (int i = 0; i < size; i += maxReadSize)
-        {
-            if (SendReadAndVerifyRam(&SerialPort, Addr, pBuf, maxReadSize, false))
-            {
-                TDebugPrint(_T("Succeed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-            }
-            else
-            {
-                TDebugPrint(_T("<0>Failed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-                return 0;
-            }
-            Addr += maxReadSize;
-            pBuf += maxReadSize;
-        }
-        TDebugPrint(_T("<0>\n"), Addr, size);
-        HexDump2(buf, size);
-    }
-    else
-    {
-        UINT32 SS1 = 0x0;
-        UINT32 SS2 = 0x1000;
-        UINT32 VS1 = 0x2000;
-        UINT32 VS2 = 0x3000;
-        UINT32 DS1 = 0x4000;
-        UINT32 DS2 = 0x42000;
-        //Dump 1K SS1
-        pBuf = buf;
-        memset(buf, 0, size);
-        Addr = MemAddr + SS1;
-        TDebugPrint(_T("<6>Dump SS1 from 0x%08X len 0x%04X:\n"), Addr, size);
-        for (int i = 0; i < size; i += maxReadSize)
-        {
-            if (SendReadAndVerifyRam(&SerialPort, Addr, pBuf, maxReadSize, false))
-            {
-                TDebugPrint(_T("Succeed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-            }
-            else
-            {
-                TDebugPrint(_T("<0>Failed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-                return 0;
-            }
-            Addr += maxReadSize;
-            pBuf += maxReadSize;
-        }
-        TDebugPrint(_T("<6>\n"));
-        HexDump2(buf, size);
-
-        //Dump 1K SS2
-        pBuf = buf;
-        memset(buf, 0, size);
-        Addr = MemAddr + SS2;
-        TDebugPrint(_T("<6>Dump SS2 from 0x%08X len 0x%04X:\n"), Addr, size);
-        for (int i = 0; i < size; i += maxReadSize)
-        {
-            if (SendReadAndVerifyRam(&SerialPort, Addr, pBuf, maxReadSize, false))
-            {
-                TDebugPrint(_T("Succeed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-            }
-            else
-            {
-                TDebugPrint(_T("<0>Failed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-                delete buf;
-                return 0;
-            }
-            Addr += maxReadSize;
-            pBuf += maxReadSize;
-        }
-        TDebugPrint(_T("<6>\n"));
-        HexDump2(buf, size);
-        //Dump 1K VS1
-        pBuf = buf;
-        memset(buf, 0, size);
-        Addr = MemAddr + VS1;
-        TDebugPrint(_T("<6>Dump VS1 from 0x%08X len 0x%04X:\n"), Addr, size);
-        for (int i = 0; i < size; i += maxReadSize)
-        {
-            if (SendReadAndVerifyRam(&SerialPort, Addr, pBuf, maxReadSize, false))
-            {
-                TDebugPrint(_T("Succeed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-            }
-            else
-            {
-                TDebugPrint(_T("<0>Failed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-                delete buf;
-                return 0;
-            }
-            Addr += maxReadSize;
-            pBuf += maxReadSize;
-        }
-        TDebugPrint(_T("<6>\n"));
-        HexDump2(buf, size);
-
-        //Dump 4K VS2
-        pBuf = buf;
-        memset(buf, 0, size);
-        Addr = MemAddr + VS2;
-        TDebugPrint(_T("<6>Dump VS2 from 0x%08X len 0x%04X:\n"), Addr, size);
-        for (int i = 0; i < size; i += maxReadSize)
-        {
-            if (SendReadAndVerifyRam(&SerialPort, Addr, pBuf, maxReadSize, false))
-            {
-                TDebugPrint(_T("Succeed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-            }
-            else
-            {
-                TDebugPrint(_T("<0>Failed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-                delete buf;
-                return 0;
-            }
-            Addr += maxReadSize;
-            pBuf += maxReadSize;
-        }
-        TDebugPrint(_T("<6>\n"));
-        HexDump2(buf, size);
-
-        //Dump 4K DS1
-        pBuf = buf;
-        Addr = MemAddr + DS1;
-        memset(buf, 0, size);
-        TDebugPrint(_T("<6>Dump DS1 from 0x%08X len 0x%04X:\n"), Addr, size);
-        for (int i = 0; i < size; i += maxReadSize)
-        {
-            if (SendReadAndVerifyRam(&SerialPort, Addr, pBuf, maxReadSize, false))
-            {
-                TDebugPrint(_T("Succeed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-            }
-            else
-            {
-                TDebugPrint(_T("<0>Failed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-                delete buf;
-                return 0;
-            }
-            Addr += maxReadSize;
-            pBuf += maxReadSize;
-        }
-        TDebugPrint(_T("<6>\n"));
-        HexDump2(buf, size);
-
-        //Dump 4K DS2
-        pBuf = buf;
-        Addr = MemAddr + DS2;
-        memset(buf, 0, size);
-        TDebugPrint(_T("<6>Dump DS2 from 0x%08X len 0x%04X:\n"), Addr, size);
-        for (int i = 0; i < size; i += maxReadSize)
-        {
-            if (SendReadAndVerifyRam(&SerialPort, Addr, pBuf, maxReadSize, false))
-            {
-                TDebugPrint(_T("Succeed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-            }
-            else
-            {
-                TDebugPrint(_T("<0>Failed to READ_RAM from 0x%08X len 0x%04X\n"), Addr, maxReadSize);
-                delete buf;
-                return 0;
-            }
-            Addr += maxReadSize;
-            pBuf += maxReadSize;
-        }
-        TDebugPrint(_T("<6>\n"));
-        HexDump2(buf, size);
-    }
-
-    delete buf;
-    return 1;
-}
-
 static int execute_download_hcd(UINT8 maxWriteSize, char *minidriverPathname, char *configPathname, bool onlyEraseChip, VERIFY_METHOD verifyMethod, CY_U64 BDAddr)
 {
     ComHelper SerialPort;
@@ -1152,11 +950,6 @@ static int execute_download_hcd(UINT8 maxWriteSize, char *minidriverPathname, ch
             fclose(fHCD);
 
         return 0;
-    }
-
-    if (DumpFlag == 3)
-    {
-        return dump_data(SerialPort, 0);
     }
 
     TDebugPrint(_T("<6>\nDownloading HCD configuration...\n"));
@@ -1217,7 +1010,7 @@ static int execute_download_hex(UINT8 maxWriteSize, char *minidriverPathname, ch
             return 0;
         }
 
-        if (DumpFlag || pReflashParams->EraseAddr == INVALID_ADDR_VALUE)
+        if (pReflashParams->EraseAddr == INVALID_ADDR_VALUE)
         {
             TDebugPrint(_T("<0>Chip erase is not supported.\n"));
             return 0;
@@ -1290,7 +1083,7 @@ static int execute_download_hex(UINT8 maxWriteSize, char *minidriverPathname, ch
          *  By defaut, MTK for 737 assumes 737 enters recover mode. If download fails then use download mode.
          */
 
-        if (!InRecoverMode && !SendDownloadMinidriver(&SerialPort))
+        if (!NoDLMinidrv && !SendDownloadMinidriver(&SerialPort))
         {
             TDebugPrint(_T("<0>Failed to send DOWNLOAD_MINIDRIVER command. Ignore\n"));
 
@@ -1317,16 +1110,12 @@ static int execute_download_hex(UINT8 maxWriteSize, char *minidriverPathname, ch
             else
             {
                 TDebugPrint(_T("<6>Launch minidriver at  0x%08X succeeded.\n"), minidrvFile.launchAddress);
-                if (DumpFlag == 3)
-                {
-                    return dump_data(SerialPort);
-                }
             }
         }
 
     }
 
-    if (!DumpFlag && pReflashParams->EraseAddr != INVALID_ADDR_VALUE && !SendChipErase(&SerialPort, pReflashParams->EraseAddr))
+    if (pReflashParams->EraseAddr != INVALID_ADDR_VALUE && !SendChipErase(&SerialPort, pReflashParams->EraseAddr))
     {
         TDebugPrint(_T("<0>Failed to erase chip at at 0x%08X.\n"), pReflashParams->EraseAddr);
 
@@ -1345,18 +1134,11 @@ static int execute_download_hex(UINT8 maxWriteSize, char *minidriverPathname, ch
     {
         TDebugPrint(_T("<6>Download configuration...\n"));
 
-        if (DumpFlag)
+        if (!execute_download_hex_file(&SerialPort, maxWriteSize, &configFile, (verifyMethod == VERIFY_CRC) ? VERIFY_CRC : VERIFY_NONE))
         {
-            verifyMethod = VERIFY_DATA;
-        }
-        else
-        {
-            if (!execute_download_hex_file(&SerialPort, maxWriteSize, &configFile, (verifyMethod == VERIFY_CRC) ? VERIFY_CRC : VERIFY_NONE))
-            {
-                TDebugPrint(_T("<0>Failed to send download config hex file.\n"));
+            TDebugPrint(_T("<0>Failed to send download config hex file.\n"));
 
-                return 0;
-            }
+            return 0;
         }
 
         if ((verifyMethod == VERIFY_DATA) && !execute_download_hex_file(&SerialPort, maxWriteSize, &configFile, VERIFY_DATA))
@@ -1520,54 +1302,6 @@ int _tmain(int argc, _TCHAR* argv[])
     bool onlyErase = false;
     int i = 0;
 
-    if (_stricmp(argv[1], "gen_hex") == 0)
-    {
-        if (argc != 4)
-        {
-            print_usage_gen_hex(true);
-            return - 1;
-        }
-        FwFileWicedHex emptyHex;
-        int err = 0;
-        UINT32 addr = Global::IntFromHexStr(argv[2], err);
-        if (err && addr == 0)
-        {
-            TDebugPrint(_T("<0>Invalid HEX address value.\n"));
-            print_usage_gen_hex(true);
-            return -1;
-        }
-        UINT32 len = Global::IntFromHexStr(argv[3], err);
-        if (!len)
-        {
-            TDebugPrint(_T("<0>Invalid HEX length value.\n"));
-            print_usage_gen_hex(true);
-            return -1;
-        }
-
-        emptyHex.GenEmptyHex(addr, len);
-        emptyHex.DumpPrint();
-        return 0;
-    }
-
-    if (argc >= 3 && _stricmp(argv[1], "parse_hex") == 0)
-    {
-        Simulate = 1;
-        dbg = 7;
-        UINT8 maxWriteSize = 0;
-        char *configPathname;
-        if (argc > 3)
-        {
-            maxWriteSize = atoi(argv[2]);
-            configPathname = argv[3];
-        }
-        else
-        {
-            configPathname = argv[2];
-        }
-        int ret = execute_simulate_download_hex(maxWriteSize, configPathname);
-        return ret;
-    }
-
     if (argc >= 3)
     {
         while (argv[2][i])
@@ -1594,52 +1328,18 @@ int _tmain(int argc, _TCHAR* argv[])
     else if (argc < 2)
     {
         print_usage_download(true);
-        print_usage_dump(true);
         return 0;
     }
 
     if (_stricmp(argv[1], "recover") == 0)
     {
         argv[1] = "download";
-        InRecoverMode = 1;
+        NoDLMinidrv = 1;
     }
     else if (_stricmp(argv[1], "erase") == 0)
     {
         argv[1] = "download";
         onlyErase = 1;
-    }
-    else if (_stricmp(argv[1], "dump") == 0)
-    {
-        argv[1] = "download";
-        DumpFlag = 3;
-    }
-    else if (_stricmp(argv[1], "dumpr") == 0)
-    {
-        argv[1] = "download";
-        InRecoverMode = 1;
-        DumpFlag = 3;
-    }
-    else if (_stricmp(argv[1], "dump1") == 0)
-    {
-        argv[1] = "download";
-        DumpFlag = 1;
-    }
-    else if (_stricmp(argv[1], "dump2") == 0)
-    {
-        argv[1] = "download";
-        DumpFlag = 2;
-    }
-    else if (_stricmp(argv[1], "dump1r") == 0)
-    {
-        argv[1] = "download";
-        DumpFlag = 1;
-        InRecoverMode = 1;
-    }
-    else if (_stricmp(argv[1], "dump2r") == 0)
-    {
-        argv[1] = "download";
-        DumpFlag = 2;
-        InRecoverMode = 1;
     }
 
     if ((argc >= 2) && (_stricmp(argv[1], "reset") == 0))
@@ -1678,7 +1378,7 @@ int _tmain(int argc, _TCHAR* argv[])
     }
     else if ((argc >= 2) && (_stricmp(argv[1], "download") == 0))
     {
-        if ((!onlyErase && argc >= 5) || (onlyErase && argc >= 4) || (DumpFlag == 3 && argc >= 4))
+        if ((!onlyErase && argc >= 5) || (onlyErase && argc >= 4))
         {
             char* configPathname = NULL;
             char* moduleName = argv[3];
@@ -1701,58 +1401,33 @@ int _tmain(int argc, _TCHAR* argv[])
                     return -1;
                 }
 
+                if (pReflashParams->IgnoreDLMinidrvCmd && NoDLMinidrv)
+                    NoDLMinidrv = 0;
+
                 CY_U64 BDAddr = 0;
                 minidrvPathname = pReflashParams->MiniDrvPath;
-                if (DumpFlag == 3)
-                {
-                    int err = 0;
-                    configPathname = NULL;
-                    if (argc >= 5)
-                    {
-                        DumpOffset = Global::IntFromHexStr(argv[4], err);
-                        if (err)
-                        {
-                            TDebugPrint(_T("<0>Invalid HEX offset value.\n"));
-                            print_usage_dump(true);
-                            return 0;
-                        }
-                    }
-                    if (argc >= 6)
-                    {
-                        err = 0;
-                        DumpLength = Global::IntFromHexStr(argv[5], err);
-                        if (err)
-                        {
-                            TDebugPrint(_T("<0>Invalid HEX length value.\n"));
-                            print_usage_dump(true);
-                            return 0;
-                        }
-                    }
-                }
-                else
-                {
-                    if (argc >= 5)
-                        configPathname = (argv[4]);
 
-                    if (argc >= 6)
-                    {
-                        if (strlen(argv[5]) <= 12)
-                        {
-                            char BDAddrBuf[14];
-                            memset(BDAddrBuf, 0, sizeof(BDAddrBuf));
-                            BDAddrBuf[0] = '0';
-                            memcpy(BDAddrBuf + strlen(argv[5]) % 2, argv[5], strlen(argv[5]));
+                if (argc >= 5)
+                    configPathname = (argv[4]);
 
-                            int count = Global::DecodeHexStr(BDAddrBuf, (PBYTE)(&BDAddr) + 2);
-                            if (count >= 1 && count <= 6)
-                            {
-                                BDAddr = CPU_TO_BE64(BDAddr);
-                            }
-                            else
-                            {
-                                print_usage_download(true);
-                                return 0;
-                            }
+                if (argc >= 6)
+                {
+                    if (strlen(argv[5]) <= 12)
+                    {
+                        char BDAddrBuf[14];
+                        memset(BDAddrBuf, 0, sizeof(BDAddrBuf));
+                        BDAddrBuf[0] = '0';
+                        memcpy(BDAddrBuf + strlen(argv[5]) % 2, argv[5], strlen(argv[5]));
+
+                        int count = Global::DecodeHexStr(BDAddrBuf, (PBYTE)(&BDAddr) + 2);
+                        if (count >= 1 && count <= 6)
+                        {
+                            BDAddr = CPU_TO_BE64(BDAddr);
+                        }
+                        else
+                        {
+                            print_usage_download(true);
+                            return 0;
                         }
                     }
                 }
@@ -1776,8 +1451,6 @@ int _tmain(int argc, _TCHAR* argv[])
     else
     {
         print_usage_download(false);
-        printf("\n");
-        print_usage_dump(false);
         printf("\n");
         print_usage_reset(false);
         printf("\n");
