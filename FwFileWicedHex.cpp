@@ -255,7 +255,11 @@ CY_RESULT FwFileWicedHex::UpdateBDAddress(CY_U64 BDAddr)
 
     if (ReCalc(TRUE))
     {
-        newBDAddr = 0;
+		if (newBDAddr > 0);
+        {
+            TDebugPrint(_T("<0>The whole HEX section contains BD_ADDRESS can't be split into more than one line. Please use MOD_Programmer to program instead.\n"));
+            return CY_ERROR_FAILURE;
+        }
         TDebugPrint(_T("<6>BDAddress was updated.\n"));
         return CY_ERROR_SUCCESS;
     }
@@ -309,6 +313,7 @@ bool FwFileWicedHex::ReCalc(int genCheckSum)
                 if (p)
                 {
                     memcpy(p, &newBDAddr, 6);
+                    newBDAddr = 0;
                 }
             }
             pHexRow->Data[pHexRow->DataSize] = 0x100 - Global::SUM(((CY_U8*)pHexRow) + 1, HEX_ROW_SIZE(pHexRow) - 2);
