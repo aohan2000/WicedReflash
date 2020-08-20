@@ -366,18 +366,6 @@ static void print_usage_reset(bool full)
     printf("\tSends HCI_RESET comand to device.\n");
 }
 
-static void print_usage_read(bool full)
-{
-    printf("Usage:\n\tWicedReflash read COMx [baudrate] [CTS] [VERBOSE] HEX_RAM_ADDRESS length\n");
-    printf("\tRead lenght bytes from RAM_ADDRESS.\n");
-}
-
-static void print_usage_parse_hex(bool full)
-{
-    printf("Usage:\n\tWicedReflash parse_hex [max_payload_size] hex_file_name\n");
-    printf("\tParse hex file and display address and length.\n");
-}
-
 static void print_usage_download(bool full)
 {
     printf("Usage:\n\tWicedReflash command COMx [baudrate] [CTS] [VERBOSE[x]] ModuleName fw_pathname [BDAddress] [minidrv_pathname]\n");
@@ -1342,41 +1330,7 @@ int _tmain(int argc, _TCHAR* argv[])
         onlyErase = 1;
     }
 
-    if ((argc >= 2) && (_stricmp(argv[1], "reset") == 0))
-    {
-        if (argc == 3)
-        {
-            return (execute_reset(NULL));
-        }
-        print_usage_reset(true);
-        return 0;
-    }
-    if ((argc >= 2) && (_stricmp(argv[1], "read") == 0))
-    {
-        if (argc == 5)
-        {
-            int err = 0;
-            UINT32 addr = Global::IntFromHexStr(argv[3], err);
-            if (err && addr == 0)
-            {
-                TDebugPrint(_T("<0>Invalid HEX address value.\n"));
-                print_usage_read(true);
-                return 0;
-            }
-            int len = atoi(argv[4]);
-            if (!len)
-            {
-                TDebugPrint(_T("<0>Invalid data length value.\n"));
-                print_usage_read(true);
-                return 0;
-            }
-
-            return (execute_read_ram(NULL, addr, len));
-        }
-        print_usage_read(true);
-        return 0;
-    }
-    else if ((argc >= 2) && (_stricmp(argv[1], "download") == 0))
+    if ((argc >= 2) && (_stricmp(argv[1], "download") == 0))
     {
         if ((!onlyErase && argc >= 5) || (onlyErase && argc >= 4))
         {
@@ -1451,12 +1405,6 @@ int _tmain(int argc, _TCHAR* argv[])
     else
     {
         print_usage_download(false);
-        printf("\n");
-        print_usage_reset(false);
-        printf("\n");
-        print_usage_read(false);
-        printf("\n");
-        print_usage_parse_hex(false);
     }
     return 0;
 }
