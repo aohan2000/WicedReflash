@@ -255,7 +255,7 @@ CY_RESULT FwFileWicedHex::UpdateBDAddress(CY_U64 BDAddr)
 
     if (ReCalc(TRUE))
     {
-		if (newBDAddr > 0);
+		if (newBDAddr > 0)
         {
             TDebugPrint(_T("<0>The whole HEX section contains BD_ADDRESS can't be split into more than one line. Please use MOD_Programmer to program instead.\n"));
             return CY_ERROR_FAILURE;
