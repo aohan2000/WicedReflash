@@ -1520,6 +1520,13 @@ int _tmain(int argc, _TCHAR* argv[])
     bool onlyErase = false;
     int i = 0;
 
+    if (argc < 2)
+    {
+        print_usage_download(true);
+        print_usage_dump(true);
+        return 0;
+    }
+
     if (_stricmp(argv[1], "gen_hex") == 0)
     {
         if (argc != 4)
@@ -1591,12 +1598,7 @@ int _tmain(int argc, _TCHAR* argv[])
             break;
         }
     }
-    else if (argc < 2)
-    {
-        print_usage_download(true);
-        print_usage_dump(true);
-        return 0;
-    }
+    
 
     if (_stricmp(argv[1], "recover") == 0)
     {
