@@ -234,6 +234,44 @@ static BOOL send_hci_command(ComHelper *p_port, LPBYTE cmd, DWORD cmd_len, LPBYT
     return FALSE;
 }
 
+/*
+* Use BlueZ to send "Set AFH Channel Classification" commad format should be:
+*    hcitool cmd 0x03 0x003F 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0x7F
+* Please refer to Bluetooth spec Vol 2, E:7.4.2
+*Opened COM44 at speed: 115200.
+*Sending HCI Command:
+*0000 < 01 3F 0C 0A FF FF FF FF FF FF FF FF FF 7F >
+*Received HCI Event:
+*0000 < 04 0E 04 01 3F 0C 00 >
+*/
+static int execute_SET_AFH_CHANNELS(ComHelper* p_port)
+{
+    BOOL res, opened = FALSE;
+
+    if (p_port == NULL)
+    {
+        p_port = new ComHelper;
+        if (!p_port->OpenPort(port_num, baud_rate, cts_flow_ctrl))
+        {
+            TDebugPrint(_T("<0>Open COM%d port Failed, baud %d.\n"), port_num, baud_rate);
+            delete p_port;
+            return 0;
+        }
+        opened = TRUE;
+    }
+    UINT8 hci_set_afh_channels[] = { 0x01, 0x3F, 0x0C, 0x0A, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F };
+    UINT8 hci_set_afh_channels_cmd_complete_event[] = { 0x04, 0x0e, 0x04, 0x01, 0x3F, 0x0C, 0x00 };
+
+    res = send_hci_command(p_port, hci_set_afh_channels, sizeof(hci_set_afh_channels), hci_set_afh_channels_cmd_complete_event, sizeof(hci_set_afh_channels_cmd_complete_event));
+    if (opened)
+        delete p_port;
+    if (res)
+        TDebugPrint(_T("<6>\nHCI_SET_AFH_CHANNELS succeeded.\n"));
+    else
+        TDebugPrint(_T("<6>\nHCI_SET_AFH_CHANNELS failed\n"));
+    return res;
+}
+
 static int execute_reset(ComHelper *p_port)
 {
     BOOL res, opened = FALSE;
