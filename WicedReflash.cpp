@@ -80,7 +80,7 @@ REFALSH_PARAMETERS ReflashParams[] = {
         0,
         0xFFFFFFFF,
         VERIFY_CRC,  //719 supports Calc CRC command
-        1,
+        0,
         0x7E000,
         0x00500000
     },
